@@ -1,0 +1,87 @@
+{
+  "name": "roast-buddy",
+  "displayName": "Roast Buddy · 锐评",
+  "description": "AI code review that reconstructs your intent first, then checks whether the code delivers it. Intent recovery, P0-P3 severity, actionable fixes. / 先还原这次改动想做什么，再对照实现挑问题：需求假设、P0–P3 分级、可执行的改法。",
+  "version": "0.1.0",
+  "publisher": "roastbuddy",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Living-v/Code-Roast.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Living-v/Code-Roast/issues"
+  },
+  "homepage": "https://github.com/Living-v/Code-Roast#readme",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other", "Machine Learning"],
+  "keywords": ["ai", "code review", "roast", "diff", "copilot"],
+  "main": "./extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "只读取 git diff 与工作区文件内容，不会在未信任工作区执行任意命令。"
+    }
+  },
+  "contributes": {
+    "configuration": {
+      "title": "锐评",
+      "properties": {
+        "roastBuddy.tone": {
+          "type": "string",
+          "enum": ["praise", "advisor", "blunt", "roast", "reaper"],
+          "enumDescriptions": [
+            "夸夸型：把你当少爷哄着说，先真诚夸再温柔提醒",
+            "温和顾问：像靠谱的技术伙伴在咖啡馆聊代码，对事不对人",
+            "耿直同事：不绕弯也不阴阳，说清后果并给具体改法",
+            "毒舌但有用：嘴毒心善，吐槽完一定给解药",
+            "赛博阎王：终极毒舌，骂的是代码救的是人，每段都附复活方案"
+          ],
+          "default": "blunt",
+          "description": "点评语气。面板上可用滑杆在 5 档间切换。只影响措辞，不影响问题分级与分数。"
+        },
+        "roastBuddy.temperature": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "模型采样温度。调低（如 0）让同一份改动的结论更稳定，调高让措辞更多变。超出 0-1 的值会被夹回区间。"
+        },
+        "roastBuddy.maxFindings": {
+          "type": "number",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "最多列出几条问题。调小更聚焦，调大更啰嗦；简单改动会自动输出 0 条。超出 1-10 的值会被夹回区间。"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "roastBuddy",
+          "title": "锐评",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "roastBuddy": [
+        {
+          "type": "webview",
+          "id": "roastBuddy.panel",
+          "name": "AI 代码锐评"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "roastBuddy.roast", "title": "锐评：AI 评审当前改动", "category": "锐评" },
+      { "command": "roastBuddy.importReview", "title": "锐评：从剪贴板导入评审结果", "category": "锐评" },
+      { "command": "roastBuddy.showPrompt", "title": "锐评：预览将要发送给模型的全文", "category": "锐评" }
+    ],
+    "keybindings": [
+      { "command": "roastBuddy.roast", "key": "ctrl+alt+r", "mac": "cmd+alt+r" }
+    ]
+  }
+}

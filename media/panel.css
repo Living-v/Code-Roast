@@ -1,0 +1,315 @@
+/* 用 VS Code 主题变量，深浅色自动跟着 IDE 走 */
+:root {
+  --p0: var(--vscode-errorForeground, #f14c4c);
+  --p1: var(--vscode-editorWarning-foreground, #cca700);
+  --p2: var(--vscode-charts-orange, #d18616);
+  --p3: var(--vscode-descriptionForeground, #999);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-sideBar-background, transparent);
+  overflow-x: hidden;
+}
+
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+.toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 10px 8px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  background: var(--vscode-sideBar-background, inherit);
+  z-index: 2;
+}
+
+button {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #fff);
+  cursor: pointer;
+  line-height: 1.4;
+}
+button:hover { background: var(--vscode-button-secondaryHoverBackground, #45494e); }
+button.primary {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+button.primary:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
+/* 评审进行中：按钮置灰且不再响应 hover/点击 */
+button:disabled {
+  opacity: .45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.tonebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 8px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+.tonebar-label { flex: 0 0 auto; }
+/* 自绘滑杆：原生 range 太细，看不出可以拖。
+   轨道高 5px、已选段用档位色填充、滑块 13px 带描边和阴影，一眼能认出是控件。
+   --pct 与 --tone-color 由 panel.js 按当前值写入。 */
+.range {
+  --pct: 50%;
+  --tone-color: var(--vscode-focusBorder, #007acc);
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+}
+.range::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 3px;
+  background:
+    linear-gradient(to right,
+      var(--tone-color) 0 var(--pct),
+      var(--vscode-scrollbarSlider-background, rgba(128, 128, 128, .35)) var(--pct) 100%);
+  box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .18);
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  /* (轨道 5 - 滑块 13) / 2，让滑块垂直居中 */
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--tone-color);
+  border: 2px solid var(--vscode-sideBar-background, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.range:hover::-webkit-slider-thumb { transform: scale(1.18); }
+.range:active::-webkit-slider-thumb { transform: scale(1.3); }
+.range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--vscode-focusBorder, #007acc);
+}
+/* 表情 + 档位名：整块定宽右对齐，滑动时不会把滑杆长度挤得来回变 */
+.tone-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+  width: 92px;
+}
+.tone-face {
+  flex: 0 0 auto;
+  font-size: 13px;
+  line-height: 1;
+  /* 明确指定 emoji 字体，免得某些字体把表情渲染成黑白方块 */
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+.tone-face.pop { animation: tonePop .22s ease; }
+@keyframes tonePop {
+  0% { transform: scale(.8); }
+  60% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+.tone-name {
+  text-align: right;
+  color: var(--vscode-foreground);
+  opacity: .9;
+  white-space: nowrap;
+}
+
+/* 右上角齿轮：窄版图标按钮，和主按钮同一行 */
+.icon-btn {
+  flex: 0 0 auto;
+  width: 28px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  background: transparent;
+  border: 1px solid transparent;
+}
+.icon-btn:hover { background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, .2)); }
+.icon-btn.active { background: var(--vscode-toolbar-activeBackground, rgba(128, 128, 128, .28)); }
+
+/* 设置面板：齿轮点开后展开，和语气条同一套视觉语言 */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 10px 8px;
+  padding: 10px;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, .22));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, transparent);
+}
+.settings.hide { display: none; }
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+.set-label { flex: 0 0 56px; white-space: nowrap; }
+.set-val {
+  flex: 0 0 32px;
+  text-align: right;
+  color: var(--vscode-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.set-hint { font-size: 10px; opacity: .7; line-height: 1.5; }
+
+.status {
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  min-height: 14px;
+}
+
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 10px 10px;
+  margin: 2px 10px 10px;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, .22));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, transparent);
+}
+.loader.hide { display: none; }
+.loader canvas {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: 48px;
+  image-rendering: pixelated;
+  opacity: .85;
+}
+.loader-text {
+  font-size: 11px;
+  min-height: 15px;
+  color: var(--vscode-descriptionForeground);
+  transition: opacity .22s ease;
+}
+/* 实时计时 + 当前真实动作：只读诊断信息，比轮播文案更小更淡 */
+.loader-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: .75;
+}
+.loader-time {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.loader-stage {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.content { padding: 4px 10px 24px; overflow-y: auto; flex: 1 1 auto; }
+
+.empty { padding: 28px 8px; text-align: center; color: var(--vscode-descriptionForeground); }
+.empty-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.empty-sub { font-size: 11px; line-height: 1.6; }
+kbd {
+  font-family: var(--vscode-editor-font-family, monospace);
+  border: 1px solid var(--vscode-panel-border, #555);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-size: 10px;
+}
+
+.empty-sub code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, .18));
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  flex: 0 0 auto;
+}
+.P0 .badge { color: var(--p0); }
+.P1 .badge { color: var(--p1); }
+.P2 .badge { color: var(--p2); }
+.P3 .badge { color: var(--p3); }
+
+/* ===== AI 锐评：固定版式 ===== */
+.rv { padding: 8px 10px 18px; font-size: 12px; line-height: 1.6; }
+.rv-head { font-size: 10.5px; letter-spacing: .6px; color: var(--vscode-descriptionForeground); margin-bottom: 6px; text-transform: uppercase; }
+.rv-model { opacity: .65; margin-left: 6px; text-transform: none; }
+.rv-sec { border-top: 1px solid var(--vscode-panel-border, rgba(128,128,128,.22)); padding: 10px 0 2px; }
+.rv-sec h3 { font-size: 11px; font-weight: 600; margin: 0 0 8px; color: var(--vscode-textLink-foreground, #3794ff); letter-spacing: .4px; }
+.rv-sum { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.rv-ev { margin: 0 0 8px; padding-left: 16px; color: var(--vscode-descriptionForeground); font-size: 11.5px; }
+.rv-ev li { margin: 2px 0; }
+.rv-risk { background: var(--vscode-inputValidation-warningBackground, rgba(255,180,0,.10)); border-left: 2px solid var(--vscode-editorWarning-foreground, #cca700); padding: 6px 8px; margin: 6px 0; font-size: 11.5px; }
+.rv-risk b { display: block; margin-bottom: 2px; }
+.rv-conf { font-size: 10.5px; color: var(--vscode-descriptionForeground); }
+.rv-verdict-row { display: flex; gap: 12px; align-items: center; }
+.rv-score { font-size: 30px; font-weight: 700; line-height: 1; min-width: 66px; }
+.rv-score small { font-size: 10px; font-weight: 400; opacity: .6; }
+.rv-verdict-text { flex: 1 1 auto; min-width: 0; }
+.rv-oneline { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.rv-tone { margin: 0; font-size: 11.5px; color: var(--vscode-descriptionForeground); font-style: italic; }
+.rv-item { border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.22)); border-left-width: 3px; border-radius: 3px; padding: 8px; margin: 8px 0; }
+.rv-item.P0 { border-left-color: #e05252; }
+.rv-item.P1 { border-left-color: #d9822b; }
+.rv-item.P2 { border-left-color: #cca700; }
+.rv-item.P3 { border-left-color: #7a7a7a; }
+.rv-item-head { display: flex; align-items: center; gap: 6px; }
+.rv-item-title { font-weight: 600; flex: 1 1 auto; min-width: 0; }
+.rv-item-lv { font-size: 10px; opacity: .6; flex: 0 0 auto; }
+.rv-loc { display: inline-block; font-family: var(--vscode-editor-font-family, monospace); font-size: 11px; color: var(--vscode-textLink-foreground, #3794ff); cursor: pointer; margin: 4px 0; }
+.rv-loc:hover { text-decoration: underline; }
+.rv-row { margin: 4px 0; font-size: 11.5px; }
+.rv-row b { display: inline-block; min-width: 34px; opacity: .7; margin-right: 4px; }
+.rv-fix { color: var(--vscode-charts-green, #388a34); }
+.rv-none { color: var(--vscode-descriptionForeground); font-style: italic; }
+.rv-good-list { margin: 0; padding-left: 16px; }
+.rv-good-list li { margin: 3px 0; }
+.rv-next p { margin: 0; font-weight: 600; }
+/* 顺嘴一提：聊天位，视觉上比正文轻一档，用左边线区隔出「插话」的感觉 */
+.rv-aside {
+  margin: 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--vscode-focusBorder, #007acc);
+  line-height: 1.65;
+  opacity: .92;
+}
