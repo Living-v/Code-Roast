@@ -141,43 +141,9 @@ const REVIEW_SCHEMA = {
   nextStep: '如果只做一件事，先做哪件'
 };
 
-/* ---- 兜底通道：把提示词交给外部模型 ----
- * 主路径是插件自己调模型。两条都不通时：
- *   1. 工作区里装了 roast-review skill（.codebuddy/skills/roast-review）→ 写 request.json，
- *      skill 跑完写回 result.json，插件监听后渲染（CodeBuddy 场景）；
- *   2. 没有 skill → 把提示词复制到剪贴板，用户粘到任意模型，再把 JSON 回复粘贴回来排版。
- * 注意：所有落盘都只在用户主动触发时发生，且不采集任何环境信息。 */
-const ROAST_DIR = '.codebuddy/roast';
-const ROAST_REQUEST = 'request.json';
-const ROAST_RESULT = 'result.json';
-const ROAST_SKILL_DIR = '.codebuddy/skills/roast-review';
-
-function roastPath(root, name) {
-  return path.join(root, ROAST_DIR, name);
-}
-
-/** 工作区是否装了配套 skill（决定走文件信箱还是剪贴板） */
-function hasRoastSkill(root) {
-  try {
-    return fs.existsSync(path.join(root, ROAST_SKILL_DIR));
-  } catch (_) {
-    return false;
-  }
-}
-
-function writeReviewRequest(root, prompt, ctx) {
-  fs.mkdirSync(path.join(root, ROAST_DIR), { recursive: true });
-  const req = roastPath(root, ROAST_REQUEST);
-  fs.writeFileSync(req, JSON.stringify({
-    createdAt: new Date().toISOString(),
-    files: ctx.files,
-    changedLines: ctx.changedLines,
-    prompt
-  }, null, 2), 'utf8');
-  // 删掉上一次结果，避免监听器立刻回放旧内容
-  try { fs.unlinkSync(roastPath(root, ROAST_RESULT)); } catch (_) { /* 没有就算了 */ }
-  return req;
-}
+/* ---- 模型通道 ----
+ * 只有两条：内置 Language Model API（装了 Copilot 这类 provider）与 CodeBuddy 后台模型命令。
+ * 都不可用时报错引导用户去登录，不落任何文件到工作区。 */
 
 /** 失败诊断：写到扩展自己的 globalStorage（不碰用户仓库），便于用户反馈问题 */
 function writeErrorLog(logDir, error, ctx) {
@@ -915,21 +881,12 @@ class RoastView {
         const cost = '（' + fmtSec(Date.now() - startedAt) + ' · 请求 ' + llmCalls + ' 次'
           + (lastStageText ? ' · 最后一步：' + lastStageText : '') + '）';
         const reason = friendlyError(r.error) + cost;
-        if (hasRoastSkill(root)) {
-          const req = writeReviewRequest(root, prompt, ctx);
-          this.post({
-            type: 'status',
-            text: reason + '。请求已写入 ' + (vscode.workspace.asRelativePath(req) || req) +
-              '，在对话里说「执行锐评」即可，结果会自动显示在这里'
-          });
-        } else {
-          // 没有配套 skill 就不再绕外部模型：脱离代码库的模型只能做「读后感」评审，
-          // 手动搬运的收益远低于误判成本，直接给安装引导更诚实。
-          this.post({
-            type: 'status',
-            text: reason + '。请安装 GitHub Copilot Chat（或在 CodeBuddy 中登录）后重试'
-          });
-        }
+        // 不绕外部模型：脱离代码库的模型只能做「读后感」评审，手动搬运的收益远低于误判成本，
+        // 直接给安装引导更诚实。
+        this.post({
+          type: 'status',
+          text: reason + '。请安装 GitHub Copilot Chat（或在 CodeBuddy 中登录）后重试'
+        });
         return;
       }
 
@@ -948,21 +905,6 @@ class RoastView {
       this._busy = false;
       stageSink = null;
       this.post({ type: 'busy', on: false });
-    }
-  }
-
-  /** skill 写回 result.json → 自动渲染（由文件监听触发） */
-  handleReviewResult(fsPath) {
-    try {
-      const review = parseReviewJson(fs.readFileSync(fsPath, 'utf8'));
-      if (!review) {
-        this.post({ type: 'status', text: ROAST_RESULT + ' 解析失败，检查 JSON 格式' });
-        return;
-      }
-      this.post({ type: 'review', review, model: 'skill' });
-      this.post({ type: 'status', text: '' });
-    } catch (e) {
-      this.post({ type: 'status', text: '读取结果失败：' + (e && e.message ? e.message : String(e)) });
     }
   }
 
@@ -1061,12 +1003,6 @@ function activate(context) {
   loadCachedAgent(context.globalState);
   const view = new RoastView(context);
 
-  // ---- skill 结果监听：request.json 被 skill 处理后写回 result.json，落地即渲染 ----
-  const watcher = vscode.workspace.createFileSystemWatcher('**/.codebuddy/roast/result.json');
-  watcher.onDidCreate(uri => view.handleReviewResult(uri.fsPath));
-  watcher.onDidChange(uri => view.handleReviewResult(uri.fsPath));
-  context.subscriptions.push(watcher);
-
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('roastBuddy.panel', view, {
       webviewOptions: { retainContextWhenHidden: true }
@@ -1105,7 +1041,6 @@ module.exports = {
   deactivate,
   __test: {
     parseDiff, askModel, askCodeBuddy, askLM, hasCodeBuddyLLM, CODEBUDDY_LLM_CMD,
-    collectReviewContext, buildReviewPrompt, sanitizeReview, parseReviewJson, REVIEW_SCHEMA,
-    writeReviewRequest, roastPath, ROAST_DIR, ROAST_REQUEST, ROAST_RESULT
+    collectReviewContext, buildReviewPrompt, sanitizeReview, parseReviewJson, REVIEW_SCHEMA
   }
 };

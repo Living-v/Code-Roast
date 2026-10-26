@@ -11,7 +11,7 @@ First release. / 首个版本。
 - Five-level tone slider (encouraging → merciless) that changes wording only, never severity or score
 - Findings are graded P0–P3; out-of-range scores are clamped to the range implied by the top severity
 - Tunable `roastBuddy.temperature` (0–1) and `roastBuddy.maxFindings` (1–10), also exposed as sliders in the panel
-- Model channels: Language Model API first, CodeBuddy built-in background model second, file-mailbox skill as last resort
+- Model channels: Language Model API first, CodeBuddy built-in background model second; when neither is reachable the panel tells you to sign in instead of writing files
 - Off-schema output is copied to the clipboard so you can fix the JSON and re-import it
 - Live progress: elapsed time, current stage (git / probe / real request) and request count
 - Simple changes return no findings instead of padded ones; the layout shrinks accordingly
@@ -25,7 +25,7 @@ First release. / 首个版本。
 - 面板按固定版式渲染：需求还原 → 总评 → 问题（P0–P3）→ 做得对的 → 先做哪一件
 - 支持点击文件行号跳转
 - 模型通道：Language Model API 优先，CodeBuddy 内置后台模型次之
-- 两条通道都不可用时：有 `roast-review` skill 则走文件信箱，否则提示安装模型扩展
+- 两条通道都不可用时：面板直接提示去登录 Copilot / CodeBuddy，不落文件、不绕外部模型
 - 模型输出不合规时把原始内容放进剪贴板，修好后可用命令 `锐评：从剪贴板导入评审结果` 重新排版
 - 等待时显示吃豆人吃豆动画（张嘴 + 呼吸缩放），并循环滚动「还原需求 / 对照实现 / 查分支遗漏 / 算分」等进度文案
 - 上次探针成功的 agent 存入 globalState，扩展重载后不必重跑整轮探针

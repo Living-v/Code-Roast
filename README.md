@@ -107,10 +107,7 @@ Run **Roast: Preview the full prompt** from the command palette to see exactly w
 - Only **staged content** is sent to your model provider.
 - Not sent: unstaged changes, committed history, the whole repository, credentials, usage statistics.
 - No telemetry. The extension makes no network calls itself — the model provider does.
-
-### Optional: file mailbox (CodeBuddy IDE)
-
-If the workspace contains `.codebuddy/skills/roast-review` and no model channel is reachable, the extension falls back to files: it writes `.codebuddy/roast/request.json`, the skill executes it and writes back `result.json`, and the panel renders it. Model calls then go through the host's quota — the extension never holds a key.
+- The extension writes **nothing into your workspace**; failure diagnostics go to its own globalStorage folder.
 
 ### Known limitations
 
@@ -244,12 +241,8 @@ git add <你要提交的文件>   →   点「AI 锐评」   →   看结果   �
 - 只有**暂存区（`git add` 过）的内容**会发送给所选的模型提供方（Copilot 或宿主内置模型），用于生成评审结果
 - 插件**不发送**：未暂存的改动、已提交的历史代码、完整仓库、任何凭据、任何使用统计
 - 插件**不联网**，所有网络请求都由模型提供方完成
-- 插件只在用户主动操作时写文件：装了 `roast-review` skill 的工作区会写 `.codebuddy/roast/request.json`；诊断日志写在扩展自己的 globalStorage 目录
+- 插件**不往你的工作区写任何文件**；失败诊断日志写在扩展自己的 globalStorage 目录
 - 不使用 telemetry
-
-### 可选：文件信箱（CodeBuddy IDE）
-
-如果工作区里存在 `.codebuddy/skills/roast-review`，模型通道不可用时插件会改写文件：把请求写进 `.codebuddy/roast/request.json`，由该 skill 执行后写回 `result.json`，面板监听并渲染。这条路径让模型调用走宿主的额度，插件本身不持有任何密钥。
 
 ### 已知限制
 
